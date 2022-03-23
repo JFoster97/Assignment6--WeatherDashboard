@@ -1,49 +1,49 @@
 var apiKey = "1c5a8875c0ef6e356265df7b0a88878a";
 
-var searchFormEl = document.querySelector('#search-form');
+// Function to display weather in
 
-function handleSearchFormSubmit(event) {
-  event.preventDefault();
+// Function for getting info of searched city
 
-  var searchInputVal = document.querySelector('#search-input').value;
-  var formatInputVal = document.querySelector('#format-input').value;
+function searchCity() {
+  var cityCase = titleCase($("#mainCityName")[0].value.trim());
 
-  if (!searchInputVal) {
-    alert('please search for a city')
-    console.error('You need a search input value!');
-    return;
-  }
+  var apiCall = "https://api.openweathermap.org/data/2.5/weather?q=" + cityCase + "&appid=" + apiKey;
 
-  var queryString = './search-results.html?q=' + searchInputVal + '&format=' + formatInputVal;
+  fetch(apiCall).then(function(response) {
+    if (response.ok) {
+      response.json().then(function(data) {
 
-  location.assign(queryString);
-}
+        $("#mainCityName")[0].textContent = cityCase + " (" + moment().format('M/D/YYYY') + ")";
+        $("#searchedCities").append('<li><button type="button" class="list-group-item list-group-item-light list-group-item-action cityName"></li>' + cityName);
 
-searchFormEl.addEventListener('submit', handleSearchFormSubmit);
+        const lat = data.coord.lat;
+        const long = data.coord.lon;
 
-function listForecast(city){
-  var apiCallURL = "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + apiKey;
+        var latLong = lat.tostring() + "" + long.tostring();
 
-  $.ajax({
-      url: apiCallURL,
-      method: "GET"
-  }).then(function(response){
-      var weatherIcon = response.weather[0].icon;
-      var date = $("<h2>").text(moment().format('l'));
-      var icon = $("<img>").attr("src", "https://openweathermap.org/img/wn/" + weatherIcon + "@2x.png"); 
-      var farenheit = (response.main.temp - 273.15) * 1.80 + 32;
+        localStorage.setItem(cityCase, latLong);
 
-      $("mainCityName").text(response.name);
-      $("mainCityName").append(date);
-      $("mainCityName").append(icon);
-      $("mainCityTemp").text(farenheit.toFixed(2) + " \u00B0F");
-      $("mainCityHumidity").text(response.main.humidity + "%");
-      $("mainCityWind").text(response.wind.speed + "MPH");
+        apiCall = "https://api.openweathermap.org/data/2.5/onecall?lat=" + lat + "&lon=" + long + "&exclude=minutely,hourly&units=imperial&appid=" + apiKey;
 
-      $.ajax({
-        url: apiCallURL,
-        method: "GET"
-      }).then(function(response) {
-        $("#mainCityUV").text(response.value);});
+        fetch(apiCall).then(function(newResponse) {
+          if(newResponse.ok) {
+            newResponse.json().then(function (newData) {
+              getCurrentWeather(newData);
+            })
+          }
+        })
       })
+    }else{
+      alert("an error occured, cannot find the searched city");
+    }
+  })
 }
+
+$("#submitBtn").on("click", function (i) {
+  i.preventDefault();
+
+  searchCity();
+
+  $("main")[0].reset();
+})
+
